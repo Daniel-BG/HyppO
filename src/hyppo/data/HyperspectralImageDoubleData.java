@@ -1,18 +1,21 @@
 package hyppo.data;
 
-import org.ejml.data.FMatrixRMaj;
+import org.ejml.data.DMatrixRMaj;
+
+import hyppo.data.imageDataTypes.ImageDataType;
 
 /**
  * Float implementation of {@link HyperspectralImageData}, which internally
- * stores its contents in a {@link FMatrixRMaj}. Useful to avoid the memory
+ * stores its contents in a {@link DMatrixRMaj}. Useful to avoid the memory
  * overhead of {@link #tofloatMatrix()}, since it returns the internal
  * pointer instead of creating a new matrix as {@link HyperspectralImageIntegerData} 
- * does
+ * does.
+ * Might lose information for some dataTypes
  * @author Daniel
  */
-public class HyperspectralImageFloatData extends HyperspectralImageData {
+public class HyperspectralImageDoubleData extends HyperspectralImageData {
 
-	private FMatrixRMaj data;
+	private DMatrixRMaj data;
 	
 	/**
 	 * Create a {@link HyperspectralImageData} with floating point inner representation
@@ -21,20 +24,20 @@ public class HyperspectralImageFloatData extends HyperspectralImageData {
 	 * @param lines
 	 * @param samples
 	 */
-	public HyperspectralImageFloatData(ImageDataType type, int bands, int lines, int samples) {
+	public HyperspectralImageDoubleData(ImageDataType type, int bands, int lines, int samples) {
 		super(type, bands, lines, samples);
-		this.data = new FMatrixRMaj(bands, this.bandElements);
+		this.data = new DMatrixRMaj(bands, this.bandElements);
 	}
 
 	/**
-	 * Build a {@link HyperspectralImageFloatData} with the given matrix as data
+	 * Build a {@link HyperspectralImageDoubleData} with the given matrix as data
 	 * @param data
 	 * @param type
 	 * @param bands
 	 * @param lines
 	 * @param samples
 	 */
-	public HyperspectralImageFloatData(FMatrixRMaj data, ImageDataType type, int bands, int lines, int samples) {
+	public HyperspectralImageDoubleData(DMatrixRMaj data, ImageDataType type, int bands, int lines, int samples) {
 		super(type, bands, lines, samples);
 		if (data.numRows != bands || data.numCols != lines * samples) {
 			throw new IllegalArgumentException("Dimensions do not match between the given data and the given dimensions");
@@ -43,28 +46,29 @@ public class HyperspectralImageFloatData extends HyperspectralImageData {
 	}
 
 	@Override
-	public int getDataAt(int band, int line, int sample) {
+	public long getDataAt(int band, int line, int sample) {
 		return this.dataType.valueToData(data.get(band*this.bandElements + line*this.samples + sample));
 	}
 
 	@Override
-	public int getValueAt(int band, int line, int sample) {
-		return (int) data.get(band*this.bandElements + line*this.samples + sample);
+	public long getValueAt(int band, int line, int sample) {
+		return (long) data.get(band*this.bandElements + line*this.samples + sample);
 	}
 
 	@Override
-	public void setDataAt(int value, int band, int line, int sample) {
-		data.set(band*this.bandElements + line*this.samples + sample, this.dataType.dataToValue(value));
+	public void setDataAt(long value, int band, int line, int sample) {
+		double dtv = this.dataType.dataToValueD(value);
+		data.set(band*this.bandElements + line*this.samples + sample, (float) dtv);
 	}
 
 	@Override
-	public void setValueAt(float value, int band, int line, int sample) {
-		data.set(band*this.bandElements + line*this.samples + sample, value);
+	public void setValueAt(double value, int band, int line, int sample) {
+		data.set(band*this.bandElements + line*this.samples + sample, (float) value);
 	}
 
 	@Override
-	public float[] getPixel(int line, int sample) {
-		float[] pixel = new float[this.bands];
+	public double[] getPixel(int line, int sample) {
+		double[] pixel = new double[this.bands];
 		for (int i = 0; i < this.bands; i++) {
 			pixel[i] = this.getValueAt(i, line, sample);
 		}
@@ -72,7 +76,7 @@ public class HyperspectralImageFloatData extends HyperspectralImageData {
 	}
 
 	@Override
-	public void setPixel(float[] pixel, int line, int sample) {
+	public void setPixel(double[] pixel, int line, int sample) {
 		for (int i = 0; i < this.bands; i++) {
 			this.setValueAt(pixel[i], i, line, sample);
 		}
@@ -82,7 +86,7 @@ public class HyperspectralImageFloatData extends HyperspectralImageData {
 	/**
 	 * Will just update the inner pointer to the given matrix
 	 */
-	public void copyDataFrom(FMatrixRMaj source) {
+	public void copyDataFrom(DMatrixRMaj source) {
 		if (this.data.numCols != source.numCols || this.data.numRows != source.numRows) {
 			throw new IllegalArgumentException("Dimensions do not match");
 		}
@@ -93,20 +97,19 @@ public class HyperspectralImageFloatData extends HyperspectralImageData {
 	/**
 	 * Will just return the inner matrix
 	 */
-	public FMatrixRMaj tofloatMatrix() {
+	public DMatrixRMaj toDoubleMatrix() {
 		return this.data;
 	}
 
 	@Override
 	public void free() {
-		// TODO Auto-generated method stub
-		
+		this.data = null;
 	}
 
 	@Override
 	public HyperspectralImageData resize(int bands, int lines, int samples) {
-		HyperspectralImageData newImage = new HyperspectralImageFloatData(
-				new ImageDataType(this.getDataType().getBitDepth(), this.getDataType().isSigned()), 
+		HyperspectralImageData newImage = new HyperspectralImageDoubleData(
+				this.dataType, 
 				bands, lines, samples);
 		
 		int cBands = this.getNumberOfBands();
@@ -126,6 +129,24 @@ public class HyperspectralImageFloatData extends HyperspectralImageData {
 		}
 
 		return newImage;
+	}
+
+	@Override
+	public void normalizeData(long high) {
+		int len = this.data.data.length;
+		double max = Double.MIN_VALUE, min = Double.MAX_VALUE;
+		for (int i = 0; i < len; i++) {
+			double datum = this.data.data[i];
+			if (datum > max)
+				max = datum;
+			if (datum < min)
+				min = datum;
+		}
+		for (int i = 0; i < len; i++) {
+			double datum = this.data.data[i];
+			datum -= min;
+			this.data.data[i] = datum > high ? high : datum;
+		}	
 	}
 
 }

@@ -8,10 +8,10 @@ import javelin.bits.BitInputStream;
 import hyppo.data.HeaderConstants;
 import hyppo.data.HyperspectralImage;
 import hyppo.data.HyperspectralImageData;
-import hyppo.data.HyperspectralImageFloatData;
+import hyppo.data.HyperspectralImageDoubleData;
 import hyppo.data.HyperspectralImageIntegerData;
-import hyppo.data.ImageDataType;
 import hyppo.data.ImageHeaderData;
+import hyppo.data.imageDataTypes.ImageDataType;
 import javelin.debug.Logger;
 import hyppo.io.headerio.ImageHeaderReaderWriter;
 import hyppo.io.headerio.enums.BandOrdering;
@@ -79,7 +79,7 @@ public class HyperspectralImageReader {
 		Logger.getLogger().log("Image size is: " + bands + "bands x " + lines + "lines x " + samples + "samples");
 		ImageDataType type = ImageDataType.fromHeaderCode((byte) header.get(HeaderConstants.HEADER_DATA_TYPE));
 		if (floatRep) {
-			data = new HyperspectralImageFloatData(type, bands, lines, samples);
+			data = new HyperspectralImageDoubleData(type, bands, lines, samples);
 		} else {
 			data = new HyperspectralImageIntegerData(type, bands, lines, samples);
 		}

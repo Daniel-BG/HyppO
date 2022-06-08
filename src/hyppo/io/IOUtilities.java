@@ -39,7 +39,7 @@ public class IOUtilities {
 	 * @param dataBytes
 	 * @param bb
 	 */
-	public static void putBytes(int val, ByteOrdering byteOrdering, int dataBytes, ByteBuffer bb) {
+	public static void putBytes(long val, ByteOrdering byteOrdering, int dataBytes, ByteBuffer bb) {
 		if (byteOrdering == ByteOrdering.LITTLE_ENDIAN) {
 			val = IOUtilities.flipBytes(val, dataBytes);
 		} 
@@ -53,8 +53,8 @@ public class IOUtilities {
 	 * @param bb
 	 * @return the newly read bytes
 	 */
-	public static int getBytes(ByteOrdering byteOrdering, int dataBytes, ByteBuffer bb) {
-		int val = IOUtilities.getRightBytes(dataBytes, bb);
+	public static long getBytes(ByteOrdering byteOrdering, int dataBytes, ByteBuffer bb) {
+		long val = IOUtilities.getRightBytes(dataBytes, bb);
 		if (byteOrdering == ByteOrdering.LITTLE_ENDIAN) {
 			val = IOUtilities.flipBytes(val, dataBytes);
 		} 
@@ -117,7 +117,7 @@ public class IOUtilities {
 	 * @param bb where to put the bytes
 	 * @see {@link #putLeftBytes(int, int, ByteBuffer)}
 	 */
-	public static void putRightBytes(int val, int bytes, ByteBuffer bb) {
+	public static void putRightBytes(long val, int bytes, ByteBuffer bb) {
 		switch (bytes) {
 		case 1:
 			bb.put((byte) val);
@@ -130,10 +130,17 @@ public class IOUtilities {
 			bb.putShort((short) val);
 			break;
 		case 4:
-			bb.putInt(val);
+			bb.putInt((int) (val & 0xffffffff));
+			break;
+		case 6:
+			bb.putInt((int) ((val >> 16l) & 0xffffffff));
+			bb.putInt((int) (val & 0xffffffff));
+			break;
+		case 8:
+			bb.putLong(val);
 			break;
 		default:
-			throw new IllegalArgumentException("Too many or too little bytes to put");
+			throw new IllegalArgumentException("Too many or too little bytes to put: " + bytes);
 		}
 	}
 	
@@ -143,7 +150,7 @@ public class IOUtilities {
 	 * @param bb
 	 * @return the read bytes
 	 */
-	public static int getRightBytes(int bytes, ByteBuffer bb) {
+	public static long getRightBytes(int bytes, ByteBuffer bb) {
 		switch(bytes) {
 		case 1:
 			return bb.get() & 0xff;
@@ -153,6 +160,8 @@ public class IOUtilities {
 			return ((bb.get() << 16) | bb.getShort()) & 0xffffff;
 		case 4:
 			return bb.getInt();
+		case 8:
+			return bb.getLong(); 
 		default:
 			throw new IllegalArgumentException("Too many or too little bytes to get");
 		}
@@ -175,6 +184,27 @@ public class IOUtilities {
 			return (source & 0xff00) | ((source >> 16) & 0xff) | ((source & 0xff) << 16);
 		case 4:
 			return ((source & 0xff) << 24) | ((source & 0xff00) << 8) | ((source & 0xff0000) >> 8) | ((source >> 24) & 0xff);
+		}
+		throw new IllegalArgumentException("Cannot work with that size");
+	}
+	
+	/**
+	 * flip the given number of bytes (basically change from lil endian to big endian
+	 * and vice versa
+	 * @param source integer to be flipped
+	 * @param bytes number of bytes to be flipped
+	 * @return the flipped integer
+	 */
+	public static long flipBytes(long source, int bytes) {
+		switch(bytes) {
+		case 1:
+			return source;
+		case 2:
+			return ((source >> 8l) & 0xffl) | ((source & 0xffl) << 8l);
+		case 4:
+			return ((source & 0xffl) << 24l) | ((source & 0xff00l) << 8l) | ((source & 0xff0000l) >> 8l) | ((source >> 24l) & 0xffl);
+		case 8:
+			return ((source & 0xffl) << 56l) | ((source & 0xff00l) << 40l) | ((source & 0xff0000l) << 24l) | ((source & 0xff000000l) << 8) | ((source & 0xff00000000l) >> 8l) | ((source & 0xff0000000000l) >> 24l) | ((source & 0xff000000000000l) >> 40l) | ((source >> 56l) & 0xffl);
 		}
 		throw new IllegalArgumentException("Cannot work with that size");
 	}

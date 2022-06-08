@@ -1,7 +1,7 @@
 package hyppo.util;
 
-import org.ejml.data.FMatrixRMaj;
-import org.ejml.dense.row.CommonOps_FDRM;
+import org.ejml.data.DMatrixRMaj;
+import org.ejml.dense.row.CommonOps_DDRM;
 import org.ejml.simple.SimpleMatrix;
 
 /**
@@ -16,10 +16,10 @@ public class EJMLExtensions {
 	 * @param cols
 	 * @return a matrix of the specified shape filled with ones
 	 */
-	public static FMatrixRMaj ones(int rows, int cols) {
-		SimpleMatrix m = SimpleMatrix.wrap(new FMatrixRMaj(rows, cols));
+	public static DMatrixRMaj ones(int rows, int cols) {
+		SimpleMatrix m = SimpleMatrix.wrap(new DMatrixRMaj(rows, cols));
 		m.set(1);
-		return m.matrix_F32();
+		return m.matrix_F64();
 	}
 	
 	
@@ -32,7 +32,7 @@ public class EJMLExtensions {
 	 * @param summ if not null, return the summation here. Matrix is modified
 	 * @param mean if not null, return the mean here. Matrix is modified
 	 */
-	public static void generateCovarianceMatrix(FMatrixRMaj data, FMatrixRMaj cov, FMatrixRMaj summ, FMatrixRMaj mean) {
+	public static void generateCovarianceMatrix(DMatrixRMaj data, DMatrixRMaj cov, DMatrixRMaj summ, DMatrixRMaj mean) {
 		if (cov == null && summ == null && mean == null) {
 			return;
 		}
@@ -42,47 +42,47 @@ public class EJMLExtensions {
 		
 		/** Summ is always required */
 		if (summ == null) {
-			summ = new FMatrixRMaj(dim);
+			summ = new DMatrixRMaj(dim);
 		}	
 		summ.reshape(dim, 1);
-        CommonOps_FDRM.mult(data, EJMLExtensions.ones(samples, 1), summ);
+		CommonOps_DDRM.mult(data, EJMLExtensions.ones(samples, 1), summ);
         
         /** Mean is required if mean or cov are required */
         if (mean == null) {
         	if (cov == null) {
         		return;
         	}
-        	mean = new FMatrixRMaj(dim);
+        	mean = new DMatrixRMaj(dim);
         }
         mean.set(summ);
-        CommonOps_FDRM.divide(mean, (float) data.getNumCols());
+        CommonOps_DDRM.divide(mean, (double) data.getNumCols());
         
         /** Calculate cov if asked for */
         if (cov == null) {
         	return;
         }
         cov.reshape(dim, dim);
-        CommonOps_FDRM.multTransB(data, data, cov);
-        FMatrixRMaj s2 = new FMatrixRMaj(dim, dim);
-        CommonOps_FDRM.multTransB(mean, summ, s2);
-        CommonOps_FDRM.subtract(cov, s2, cov);
+        CommonOps_DDRM.multTransB(data, data, cov);
+        DMatrixRMaj s2 = new DMatrixRMaj(dim, dim);
+        CommonOps_DDRM.multTransB(mean, summ, s2);
+        CommonOps_DDRM.subtract(cov, s2, cov);
 	}
 
 	/**
 	 * Does the inverse square root of all the elements in the diagonal. Use only with diagonal matrices
 	 * @param source
 	 */
-	public static void inverseSquareRoot(FMatrixRMaj source) {
+	public static void inverseSquareRoot(DMatrixRMaj source) {
 		if (source.getNumCols() != source.getNumRows()) {
 			throw new IllegalArgumentException("Only works on square matrices");
 		}
 		
 		for (int i = 0; i < source.getNumCols(); i++) {
-			float val = source.get(i, i);
+			double val = source.get(i, i);
 			if (Math.abs(val) < 0.1e-30) {
 				source.set(i, i, 0);
 			} else  {
-				source.set(i, i, (float) (1.0 / Math.sqrt(val)));
+				source.set(i, i, (double) (1.0 / Math.sqrt(val)));
 			}
 		}
 		
@@ -97,7 +97,7 @@ public class EJMLExtensions {
 	 * @return the subset of the input, which could be empty if <code>probability</code> 
 	 * is too low
 	 */
-	public static FMatrixRMaj getSubSet(FMatrixRMaj source, double probability) {
+	public static DMatrixRMaj getSubSet(DMatrixRMaj source, double probability) {
 		if (probability < 0 || probability > 1) {
 			throw new IllegalArgumentException("Probability must be between 0 and 1");
 		}
@@ -105,7 +105,7 @@ public class EJMLExtensions {
 			return source;
 		}
 		int samples = (int) (source.getNumCols() * probability);
-		FMatrixRMaj result = new FMatrixRMaj(source.getNumRows(), samples);
+		DMatrixRMaj result = new DMatrixRMaj(source.getNumRows(), samples);
 		for (int i = 0; i < samples; i++) {
 			double which = ((double) i) * source.getNumCols() / (double) samples;
 			int index = (int) Math.round(which); //should be between 0 and source.numcols - 1
@@ -122,7 +122,7 @@ public class EJMLExtensions {
 	 * @param matrix
 	 * @param vector
 	 */
-	public static void addColumnVector(FMatrixRMaj matrix, FMatrixRMaj vector) {
+	public static void addColumnVector(DMatrixRMaj matrix, DMatrixRMaj vector) {
 		if (vector.numCols != 1) {
 			throw new IllegalArgumentException("the vector must have one column");
 		}
@@ -143,7 +143,7 @@ public class EJMLExtensions {
 	 * @param matrix
 	 * @param vector
 	 */
-	public static void subColumnVector(FMatrixRMaj matrix, FMatrixRMaj vector) {
+	public static void subColumnVector(DMatrixRMaj matrix, DMatrixRMaj vector) {
 		if (vector.numCols != 1) {
 			throw new IllegalArgumentException("the vector must have one column");
 		}
@@ -163,13 +163,13 @@ public class EJMLExtensions {
 	 * @return a pair of integers, the firs one being the minimum value within the image, 
 	 * the second one being the maximum. 
 	 */
-	public static float[] minMax(FMatrixRMaj h1) {
-		float[] minMax = new float[2];
+	public static double[] minMax(DMatrixRMaj h1) {
+		double[] minMax = new double[2];
 		minMax[0] = Integer.MAX_VALUE;
 		minMax[1] = Integer.MIN_VALUE;
 		for (int i = 0; i < h1.getNumRows(); i++) {
 			for (int j = 0; j < h1.getNumCols(); j++) {
-				float sample = h1.get(i, j);
+				double sample = h1.get(i, j);
 				if (minMax[0] > sample) {
 					minMax[0] = sample;
 				}
@@ -185,9 +185,9 @@ public class EJMLExtensions {
 	 * @param h1
 	 * @return the average value of the samples in h1
 	 */
-	public static float avg(FMatrixRMaj h1) {
+	public static double avg(DMatrixRMaj h1) {
 		SimpleMatrix m = SimpleMatrix.wrap(h1);
-		return (float) (m.elementSum() / (double) m.getNumElements());
+		return (double) (m.elementSum() / (double) m.getNumElements());
 	}
 	
 	/**
@@ -195,18 +195,18 @@ public class EJMLExtensions {
 	 * @param avg precalculated average for faster computation (if null will calculate)
 	 * @return the variance of the samples of the given image
 	 */
-	public static float var(FMatrixRMaj h1, Float avg) {
+	public static double var(DMatrixRMaj h1, Double avg) {
 		if (avg == null) {
 			avg = avg(h1);
 		}
 		double acc = 0;
 		for (int j = 0; j < h1.getNumRows(); j++) {
 			for (int k = 0; k < h1.getNumCols(); k++) {
-				float val = (float) h1.get(j, k) - avg;
+				double val = (double) h1.get(j, k) - avg;
 				acc += val * val;
 			}
 		}
-		return (float) (acc / (double) h1.getNumElements());
+		return (double) (acc / (double) h1.getNumElements());
 	}
 	
 	/**
@@ -216,7 +216,7 @@ public class EJMLExtensions {
 	 * @param avg2 average of h2 used for speed up. If not available send null
 	 * @return the covariance of both images
 	 */
-	public static float cov(FMatrixRMaj h1, FMatrixRMaj h2, Float avg1, Float avg2) {
+	public static double cov(DMatrixRMaj h1, DMatrixRMaj h2, Double avg1, Double avg2) {
 		ImageComparisons.checkDimensions(h1, h2);
 		if (avg1 == null) {
 			avg1 = avg(h1);
@@ -231,7 +231,7 @@ public class EJMLExtensions {
 			}
 		}
 
-		return (float) (acc / (double) h1.getNumElements());
+		return (double) (acc / (double) h1.getNumElements());
 	}
 	
 	/**
@@ -239,8 +239,8 @@ public class EJMLExtensions {
 	 * @param avg average of h1, used to speed up calculations. if null, it will be calculated
 	 * @return the std of the samples of the given image
 	 */
-	public static float std(FMatrixRMaj h1, float avg) {
-		return (float) Math.sqrt(var(h1, avg));
+	public static double std(DMatrixRMaj h1, double avg) {
+		return (double) Math.sqrt(var(h1, avg));
 	}
 	
 	/**
@@ -249,10 +249,10 @@ public class EJMLExtensions {
 	 * @param h2
 	 * @return a matrix of size (h1.rows, 1) containing the mean diff of each row of h1 and h2
 	 */
-	public static FMatrixRMaj meanDiff(FMatrixRMaj h1, FMatrixRMaj h2) {
+	public static DMatrixRMaj meanDiff(DMatrixRMaj h1, DMatrixRMaj h2) {
 		ImageComparisons.checkDimensions(h1, h2);
 		
-		FMatrixRMaj res = new FMatrixRMaj(h1.getNumRows(), 1);
+		DMatrixRMaj res = new DMatrixRMaj(h1.getNumRows(), 1);
 		
 		for (int i = 0; i < h1.getNumRows(); i++) {
 			for (int j = 0; j < h1.getNumCols(); j++) {
@@ -260,7 +260,7 @@ public class EJMLExtensions {
 			}
 		}
 		
-		CommonOps_FDRM.divide(res, h1.getNumCols());
+		CommonOps_DDRM.divide(res, h1.getNumCols());
 		
 		return res;
 	}
@@ -270,7 +270,7 @@ public class EJMLExtensions {
 	 * @param h1
 	 * @return the power of the image (mean of the squared values)
 	 */
-	public static float power(FMatrixRMaj h1) {
+	public static double power(DMatrixRMaj h1) {
 		double acc = 0;
 		for (int i = 0; i < h1.getNumRows(); i++) {
 			for (int j = 0; j < h1.getNumCols(); j++) {
@@ -278,6 +278,6 @@ public class EJMLExtensions {
 			}
 		}
 		acc /= h1.getNumElements();
-		return (float) acc;
+		return (double) acc;
 	}
 }

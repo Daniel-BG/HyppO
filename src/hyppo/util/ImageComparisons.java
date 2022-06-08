@@ -1,6 +1,6 @@
 package hyppo.util;
 
-import org.ejml.data.FMatrixRMaj;
+import org.ejml.data.DMatrixRMaj;
 
 
 /**
@@ -17,9 +17,9 @@ public class ImageComparisons {
 	 * @param dynRange the dynamic range of the data
 	 * @return the PSNR between both images
 	 */
-	public static float rawPSNR (FMatrixRMaj h1, FMatrixRMaj h2, float dynRange) {
-		float mse = MSE(h1, h2);
-		float maxVal = dynRange;
+	public static double rawPSNR (DMatrixRMaj h1, DMatrixRMaj h2, double dynRange) {
+		double mse = MSE(h1, h2);
+		double maxVal = dynRange;
 		
 		return PSNR(mse, maxVal);
 	}
@@ -30,10 +30,10 @@ public class ImageComparisons {
 	 * @return the normalized PSNR, calculated using the dynamic range of the image instead of
 	 * the fixed maximum value range that pixels can have
 	 */
-	public static float normalizedPSNR(FMatrixRMaj h1, FMatrixRMaj h2) {
-		float mse = MSE(h1, h2);
-		float[] minMax = EJMLExtensions.minMax(h1);
-		float maxVal = minMax[1] - minMax[0];
+	public static double normalizedPSNR(DMatrixRMaj h1, DMatrixRMaj h2) {
+		double mse = MSE(h1, h2);
+		double[] minMax = EJMLExtensions.minMax(h1);
+		double maxVal = minMax[1] - minMax[0];
 		
 		return PSNR(mse, maxVal);
 	}
@@ -43,10 +43,10 @@ public class ImageComparisons {
 	 * @param h2
 	 * @return the signal noise ratio between the given images
 	 */
-	public static float SNR(FMatrixRMaj h1, FMatrixRMaj h2) {
-		float var = EJMLExtensions.var(h1, null);
-		float mse = MSE(h1, h2);
-		return (float) (10 * Math.log10(var / mse));
+	public static double SNR(DMatrixRMaj h1, DMatrixRMaj h2) {
+		double var = EJMLExtensions.var(h1, null);
+		double mse = MSE(h1, h2);
+		return (double) (10 * Math.log10(var / mse));
 	}
 	
 	/**
@@ -54,17 +54,17 @@ public class ImageComparisons {
 	 * @param h2
 	 * @return the signal noise ratio between the given images
 	 */
-	public static float powerSNR(FMatrixRMaj h1, FMatrixRMaj h2) {
-		float pow = EJMLExtensions.power(h1);
-		float mse = MSE(h1, h2);
-		return (float) (10 * Math.log10(pow / mse));
+	public static double powerSNR(DMatrixRMaj h1, DMatrixRMaj h2) {
+		double pow = EJMLExtensions.power(h1);
+		double mse = MSE(h1, h2);
+		return (double) (10 * Math.log10(pow / mse));
 	}
 	
-	private static float PSNR (float mse, float max) {
+	private static double PSNR (double mse, double max) {
 		if (mse == 0d) {
-			return Float.POSITIVE_INFINITY;
+			return Double.POSITIVE_INFINITY;
 		} else {
-			return (float) (20 * Math.log10(max) - 10 * Math.log10(mse));
+			return (double) (20 * Math.log10(max) - 10 * Math.log10(mse));
 		}
 	}
 	
@@ -73,16 +73,16 @@ public class ImageComparisons {
 	 * @param h2
 	 * @return the Mean Squared Error (mean of all "differences between pixels squared")
 	 */
-	public static float MSE (FMatrixRMaj h1, FMatrixRMaj h2) {
+	public static double MSE (DMatrixRMaj h1, DMatrixRMaj h2) {
 		checkDimensions(h1, h2);
-		float acc = 0;
+		double acc = 0;
 		for (int i = 0; i < h1.getNumRows(); i++) {
 			for (int j = 0; j < h2.getNumCols(); j++) {
-				float val = h1.get(i, j) - h2.get(i, j);
+				double val = h1.get(i, j) - h2.get(i, j);
 				acc += val * val;
 			}
 		}
-		return acc / (float) h1.getNumElements();
+		return acc / (double) h1.getNumElements();
 	}
 	
 	/**
@@ -90,12 +90,12 @@ public class ImageComparisons {
 	 * @param h2
 	 * @return the maximum squared error (difference between samples squared)
 	 */
-	public static float maxSE (FMatrixRMaj h1, FMatrixRMaj h2) {
+	public static double maxSE (DMatrixRMaj h1, DMatrixRMaj h2) {
 		checkDimensions(h1, h2);
-		float acc = Float.MIN_VALUE;
+		double acc = Double.MIN_VALUE;
 		for (int i = 0; i < h1.getNumRows(); i++) {
 			for (int j = 0; j < h2.getNumCols(); j++) {
-				float val = h1.get(i, j) - h2.get(i, j);
+				double val = h1.get(i, j) - h2.get(i, j);
 				val *= val;
 				if (val > acc)
 					acc = val;
@@ -109,15 +109,15 @@ public class ImageComparisons {
 	 * @param h2
 	 * @return the mean to noise standard deviation ratio
 	 */
-	public static float MSR (FMatrixRMaj h1, FMatrixRMaj h2) {
+	public static double MSR (DMatrixRMaj h1, DMatrixRMaj h2) {
 		checkDimensions(h1, h2);
-		float mean = EJMLExtensions.avg(h1);
-		float std = (float) Math.sqrt(MSE(h1, h2));
+		double mean = EJMLExtensions.avg(h1);
+		double std = (double) Math.sqrt(MSE(h1, h2));
 		return mean / std;
 	}
 	
-	private final static float k1 = 0.01f; //usually 0.01?
-	private final static float k2 = 0.03f; //usually 0.03?
+	private final static double k1 = 0.01f; //usually 0.01?
+	private final static double k2 = 0.03f; //usually 0.03?
 	
 	/**
 	 * @param h1
@@ -126,18 +126,18 @@ public class ImageComparisons {
 	 * @return the SSIM metric
 	 * @see <a href="https://ece.uwaterloo.ca/~z70wang/publications/ssim.pdf">Article</a>
 	 */
-	public static float SSIM (FMatrixRMaj h1, FMatrixRMaj h2, float dynRange) {
+	public static double SSIM (DMatrixRMaj h1, DMatrixRMaj h2, double dynRange) {
 		checkDimensions(h1, h2);
 		//add up all squared differences
-		float mu1 = EJMLExtensions.avg(h1);
-		float mu2 = EJMLExtensions.avg(h2);
-		float v1 = EJMLExtensions.var(h1, mu1);
-		float v2 = EJMLExtensions.var(h2, mu2);
-		float sigma = EJMLExtensions.cov(h1, h2, mu1, mu2);
-		float L = dynRange;
+		double mu1 = EJMLExtensions.avg(h1);
+		double mu2 = EJMLExtensions.avg(h2);
+		double v1 = EJMLExtensions.var(h1, mu1);
+		double v2 = EJMLExtensions.var(h2, mu2);
+		double sigma = EJMLExtensions.cov(h1, h2, mu1, mu2);
+		double L = dynRange;
 		
-		float c1 = k1*k1*L*L;
-		float c2 = k2*k2*L*L;
+		double c1 = k1*k1*L*L;
+		double c2 = k2*k2*L*L;
 		
 		return 
 				((2*mu1*mu2 + c1) * (2*sigma + c2)) 
@@ -150,7 +150,7 @@ public class ImageComparisons {
 	 * @param h1
 	 * @param h2
 	 */
-	public static void checkDimensions(FMatrixRMaj h1, FMatrixRMaj h2) {
+	public static void checkDimensions(DMatrixRMaj h1, DMatrixRMaj h2) {
 		if (h1.getNumCols() != h2.getNumCols() || h1.getNumRows() != h2.getNumRows())
 			throw new IllegalArgumentException("Image sizes do not match!");
 	}

@@ -33,7 +33,7 @@ public class HyperspectralImageDataWriter {
 		try {
 			out = new RandomAccessFile(fileName, "rw"); //need rw for the file.map function to work
 			FileChannel file = out.getChannel();
-			int expectedBytes = hi.getNumberOfBands() * hi.getNumberOfLines() * hi.getNumberOfSamples() * 2;
+			int expectedBytes = hi.getNumberOfBands() * hi.getNumberOfLines() * hi.getNumberOfSamples() * hi.getDataType().getByteLength();
 			
 			ByteBuffer buf = file.map(FileChannel.MapMode.READ_WRITE, offset, expectedBytes);
 			ImageDataWriterFactory.getWriter(imageOrdering, byteOrdering, hi.getDataType()).writeToBuffer(hi, buf);

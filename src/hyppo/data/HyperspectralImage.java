@@ -56,4 +56,12 @@ public class HyperspectralImage {
 	public String getInfo() {
 		return "HEADER:\n" + this.header.getInfo() + "\nDATA:\n" + this.data.getInfo();
 	}
+	
+	/*
+	 * Normalize to a 16-bit unsigned dataType
+	 */
+	public void normalize() {
+		this.data.normalize();
+		this.header.replace(HeaderConstants.HEADER_DATA_TYPE, 2);
+	}
 }
